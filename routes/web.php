@@ -49,5 +49,7 @@ $router->group(['middleware' => 'auth:api', 'prefix' => 'users'], function ($rou
 $router->group(['middleware' => 'auth:api', 'prefix' => 'chats'], function ($router) {
     $router->get('/', 'ChatController@index');
     $router->post('/send-message', 'ChatController@send_message');
+    $router->get('/read/{id:[0-9]+}', 'ChatController@show');
+    $router->post('/reply/{id:[0-9]+}', 'ChatController@reply');
     
 });

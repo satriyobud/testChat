@@ -36,7 +36,13 @@ class ChatController extends Controller
     {
         $auth_user = $this->auth->getAuthenticatedUser();
         $user = $auth_user['data'];
-        $chats = ChatMember::where('user_id',$user['id'])->with('chat')->get();
+        $user_id = $user['id'];
+        $chats = Chat::select('chat.id','to.name',DB::raw('DATE_FORMAT(`chat_message`.created_at, "%H:%i:%s %d-%m-%Y") as last'))->join('chat_member','chat_member.chat_id','chat.id')->join('chat_message','chat_message.chat_id','chat.id')->where('chat_member.user_id',$user['id'])->orderBy('chat_message.created_at', 'DESC')->groupBy('chat.id')
+        ->join('chat_member as to', function($join) use ($user_id)
+                         {
+                             $join->on('chat_member.chat_id', '=', 'to.chat_id')->where('to.user_id','!=',$user_id);
+                         })->with('messages')
+        ->get();
         $data['code'] = 200; 
         $data['message'] = "success"; 
         $data['data'] = $chats; 
@@ -57,71 +63,35 @@ class ChatController extends Controller
         $user = $auth_user['data'];
         $to = User::where('id',$request->to)->first();
         if(!$to){
-            return response()->json([], 400);
+            return response()->json([
+                'status' => 'failed',
+                'code' => 400,
+                'message' => "receiver not found"
+            ], 400);
         }
-        /*check if user already in chat room*/
+        if($user['id'] == $request->to){
+            return response()->json([
+                'status' => 'failed',
+                'code' => 400,
+                'message' => "cannot send message to yourself"
+            ], 400);
+        }
+        DB::beginTransaction();
+        try {
+        /*check if sender already in chat room*/
+        /*check if receiver in the same room*/
+            $check = collect(\DB::select("SELECT c.id
+                    FROM chat c
+                    JOIN chat_member cm ON c.id = cm.chat_id AND cm.user_id = {$user['id']}
+                    JOIN chat_member cm2 ON c.id = cm2.chat_id AND cm2.user_id = {$request->to}"))->first();
 
-        $check = Chat::join('chat_member', 'chat.id', '=', 'chat_id')
-                    ->where('user_id',$user['id'])
-                    ->get();
-        // dd($check);
-        if(count($check)>0){
-            // $check = $check;
-            $idx = is_array($check);
-
-            dd($idx);
-            if($idx){
-                dd($idx);
+            if($check){
+                $chatMessage = New ChatMessage();
+                $chatMessage->user_id = $user['id']; 
+                $chatMessage->chat_id = $check->id; 
+                $chatMessage->message = $request->message; 
+                $chatMessage->save();
             }else{
-                DB::beginTransaction();
-                try {
-                    
-                    $chat = New Chat();
-                    $chat->save();
-    
-                    $chatMember1 = New ChatMember();
-                    $chatMember1->user_id = $user['id'];
-                    $chatMember1->chat_id = $chat->id;
-                    $chatMember1->email = $user['email'];
-                    $chatMember1->name = $user['name'];
-                    $chatMember1->save();
-    
-                    $chatMember2 = New ChatMember();
-                    $chatMember2->user_id = $to->id;
-                    $chatMember2->chat_id = $chat->id;
-                    $chatMember2->email = $to->email;
-                    $chatMember2->name = $to->name;
-                    $chatMember2->save();
-    
-    
-                    $chatMessage = New ChatMessage();
-                    $chatMessage->user_id = $user['id']; 
-                    $chatMessage->chat_id = $chat->id; 
-                    $chatMessage->message = $request->message; 
-                    $chatMessage->save();
-    
-                    DB::commit();
-                    return response()->json([
-                        'status' => 'success',
-                        'code' => 200,
-                        'message' => 'chat send successfully'
-                    ], 400);
-                    
-                } catch (Exception $e) {
-                    DB::rollback();
-    
-                    return response()->json([
-                        'status' => 'failed',
-                        'code' => 400,
-                        'message' => $e->getMessage()
-                    ], 400);
-                }
-
-            }
-        }else{
-            DB::beginTransaction();
-            try {
-                
                 $chat = New Chat();
                 $chat->save();
 
@@ -144,26 +114,27 @@ class ChatController extends Controller
                 $chatMessage->user_id = $user['id']; 
                 $chatMessage->chat_id = $chat->id; 
                 $chatMessage->message = $request->message; 
-                $chatMessage->save();
-
-                DB::commit();
-                return response()->json([
-                    'status' => 'success',
-                    'code' => 200,
-                    'message' => 'chat send successfully'
-                ], 400);
-                
-            } catch (Exception $e) {
-                DB::rollback();
-
-                return response()->json([
-                    'status' => 'failed',
-                    'code' => 400,
-                    'message' => $e->getMessage()
-                ], 400);
+                $chatMessage->save();   
             }
+        
+        
+            DB::commit();                
 
+            return response()->json([
+                'status' => 'success',
+                'code' => 200,
+                'message' => 'chat send successfully'
+            ], 200);
+            
+        } catch (Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'status' => 'failed',
+                'code' => 400,
+                'message' => $e->getMessage()
+            ], 400);
         }
+        
         // $request->input('to');
 
 
@@ -180,37 +151,58 @@ class ChatController extends Controller
      */
     public function show(int $id): JsonResponse
     {
-        $user = $this->accounts->getUserById($id);
+        // dd($id);
+        $auth_user = $this->auth->getAuthenticatedUser();
+        $user = $auth_user['data'];
+        $user_id = $user['id'];
+        $chats = Chat::select('chat.id','to.name',DB::raw('DATE_FORMAT(`chat_message`.created_at, "%H:%i:%s %d-%m-%Y") as last'))->join('chat_member','chat_member.chat_id','chat.id')->join('chat_message','chat_message.chat_id','chat.id')->orderBy('chat_message.created_at', 'DESC')->groupBy('chat.id')
+        ->join('chat_member as to', function($join) use ($user_id)
+                         {
+                             $join->on('chat_member.chat_id', '=', 'to.chat_id')->where('to.user_id','!=',$user_id);
+                         })->with('messages')->where('chat.id',$id)
+        ->first();
+        /*update data*/
+        $chatMessage = ChatMessage::where('chat_id',$chats->id)->update(['status' => 1]);
 
-        return response()->json($user, Response::HTTP_OK);
+        $data['code'] = 200; 
+        $data['message'] = "success"; 
+        $data['data'] = $chats; 
+
+        return response()->json($data, 200);
     }
 
-    /**
-     * Update a user.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int                       $id
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function update(Request $request, int $id): JsonResponse
+    public function reply(Request $request, int $id): JsonResponse
     {
-        $user = $this->accounts->updateUserById($id, $request->all());
+        $auth_user = $this->auth->getAuthenticatedUser();
+        $user = $auth_user['data'];
+        DB::beginTransaction();
+        try {
+        /*check if sender already in chat room*/
+        /*check if receiver in the same room*/
+            $chatMessage = New ChatMessage();
+            $chatMessage->user_id = $user['id']; 
+            $chatMessage->chat_id = $id;
+            $chatMessage->message = $request->message; 
+            $chatMessage->save();
+        
+        
+            DB::commit();                
 
-        return response()->json($user, Response::HTTP_OK);
+            return response()->json([
+                'status' => 'success',
+                'code' => 200,
+                'message' => 'chat send successfully'
+            ], 200);
+            
+        } catch (Exception $e) {
+            DB::rollback();
+            return response()->json([
+                'status' => 'failed',
+                'code' => 400,
+                'message' => $e->getMessage()
+            ], 400);
+        }
     }
 
-    /**
-     * Delete a user.
-     *
-     * @param  int  $id
-     *
-     * @return \Illuminate\Http\JsonResponse
-     */
-    public function destroy(int $id): JsonResponse
-    {
-        $this->accounts->deleteUserById($id);
-
-        return response()->json(null, Response::HTTP_NO_CONTENT);
-    }
+    
 }

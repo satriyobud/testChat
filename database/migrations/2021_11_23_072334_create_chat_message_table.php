@@ -18,6 +18,7 @@ class CreateChatMessageTable extends Migration
             $table->integer('user_id');
             $table->integer('chat_id');
             $table->longText('message');
+            $table->tinyInteger('status')->default('0');
             $table->timestamps();
         });
     }

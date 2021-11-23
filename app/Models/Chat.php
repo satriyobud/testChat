@@ -13,5 +13,12 @@ class Chat extends Model
 
     
 
-    
+    public function to()
+    {
+        return $this->hasOne(ChatMessage::class,'chat_id','id');
+    }
+    public function messages()
+    {
+        return $this->hasMany(ChatMessage::class,'chat_id','id');
+    }
 }

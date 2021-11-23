@@ -1,6 +1,6 @@
-# Lumen API Starter
+# MINI PROJECT 
 
-A starter template to develop API with Lumen 8.
+Simple chat API with Lumen 8.
 
 ### Included Packages
 
@@ -13,181 +13,26 @@ A starter template to develop API with Lumen 8.
 ### Installation
 
 - Clone the Repo:
-    - `git clone git@github.com:munza/lumen-api-starter.git`
-    - `git clone https://github.com/munza/lumen-api-starter.git`
-- `cd lumen-api-starter`
-- SSH into the Docker container with `make ssh` and run the following.
+    - `git clone git@github.com:satriyobud/testChat.git`
+    - `git clone https://github.com/satriyobud/testChat.git`
+- `cd testChat`
+- Install Packages.
     - `composer create-project`
     - `php artisan key:generate`
     - `php artisan jwt:secret`
     - `php artisan migrate`
-- Exit from Docker container with `CTRL+C` or `exit`.
-- Rename `docker-compose.local.yaml` to `docker-compose.overridee.yaml`
-- Start the local development server with `make up`.
-- Run `make` to see available commands.
+
 
 #### Create new user
 
-- `make ssh`
+
 - `php artisan ti`
 - `App\Models\User::factory()->create(['email' => 'admin@localtest.me', 'password' => 'password'])`
 
 ### Configuration
 
 - Edit `.env` file for environment variables.
-- Edit the files in `config` directory for application configuration.
 
-### Usage
-
-Always `ssh` into Docker container `app` by running `make ssh` before executing any `artisan` commands.
-
-#### Add a new resource endpoint
-
-- Add endpoint in `routes/web.php`.
-
-    ```php
-    $router->group(['middleware' => 'auth:api'], function ($router) {
-        $app->get('/users', 'UserController@index');
-    });
-    ```
-
-- Add controller with `php artisan make:controller {name}` command
-
-- Add model at `php artisan make:model {name}`. You can use `-m` flag to add migration file and `-f` flag for factory file.
-
-- Add service at `app` directory.
-
-    ```php
-    <?php
-
-    namespace App;
-
-    class Accounts
-    {
-        // Add service methods.
-    }
-    ```
-
-- Load the service in controller.
-
-    ```php
-    <?php
-
-    namespace App\Http\Controllers;
-
-    use App\Accounts;
-
-    class UserController extends Controller
-    {
-        /**
-         * Controller constructor.
-         *
-         * @param  \App\Accounts  $accounts
-         */
-        public function __construct(Accounts $accounts)
-        {
-            $this->accounts = $accounts;
-        }
-
-        // Add controller methods.
-    }
-    ```
-
-    You can also use Facade for the services.
-
-- Add transformers at `app/Transformers` directory or use the command `php artisan make:transformer {name}`.
-
-    ```php
-    <?php
-
-    namespace App\Transformers;
-
-    use App\User;
-    use League\Fractal\TransformerAbstract;
-
-    class UserTransformer extends TransformerAbstract
-    {
-        /**
-         * Transform object to array.
-         *
-         * @param  \App\User $user
-         * @return array
-         */
-        public function transform(User $user): array
-        {
-            return [
-                'id' => (int) $user->id,
-                'email' => (string) $user->email,
-            ];
-        }
-    }
-    ```
-
-- Render JSON in controllers
-
-    ```php
-    <?php
-
-    namespace App\Http\Controllers;
-
-    use App\Accounts;
-    use Illuminate\Http\JsonResponse;
-    use Illuminate\Http\Request;
-    use Illuminate\Http\Response;
-
-    class UserController extends Controller
-    {
-        /**
-         * Controller constructor.
-         *
-         * @param  \App\Accounts  $accounts
-         */
-        public function __construct(Accounts $accounts)
-        {
-            $this->accounts = $accounts;
-        }
-
-        /**
-         * List of all users.
-         *
-         * @return \Illuminate\Http\JsonResponse
-         */
-        public function index(): JsonResponse
-        {
-            $users = $this->accounts->getUsersWithPagination($request);
-
-            return response()->json($users, Response::HTTP_OK);
-        }
-    }
-    ```
-
-- Exception message, status code and details can be displayed by declaring these as methods in an exception class.
-
-    ```php
-    <?php
-
-    namespace App\Exceptions;
-
-    use Symfony\Component\HttpKernel\Exception\HttpException;
-
-    class CustomException extends HttpException
-    {
-        public function getMessage(): string
-        {
-            return 'Custom message';
-        }
-
-        public function getStatusCode(): int
-        {
-            return 500;
-        }
-
-        public function getDetails(): ?array
-        {
-            return [];
-        }
-    }
-    ```
 
 #### Authentication
 
@@ -226,9 +71,9 @@ curl --request GET 'http://127.0.0.1:8000/auth' \
 
 Please check [fruitcake/laravel-cors](https://github.com/fruitcake/laravel-cors) in Github for the usage details.
 
-### Todo
-
-- [ ] Move all the extended features inside a package.
+### Postman
+- collection `https://www.getpostman.com/collections/750e09d9a1cf66ac18fa`
+- env `https://go.postman.co/workspace/mini-project~30aad92d-25fb-4f05-b20f-93d1f55d3014/environment/706467-d6d8d616-ef23-4993-a58b-da499207e01f`
 
 ### Issues
 
