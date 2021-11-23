@@ -28,6 +28,7 @@ class AuthController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
+        // dd($request);
         $token = $this->auth->authenticateByEmailAndPassword(
             (string) $request->input('email'),
             (string) $request->input('password')

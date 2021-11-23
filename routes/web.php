@@ -45,3 +45,9 @@ $router->group(['middleware' => 'auth:api', 'prefix' => 'users'], function ($rou
     $router->patch('/{id:[0-9]+}', 'UserController@update');
     $router->delete('/{id:[0-9]+}', 'UserController@destroy');
 });
+
+$router->group(['middleware' => 'auth:api', 'prefix' => 'chats'], function ($router) {
+    $router->get('/', 'ChatController@index');
+    $router->post('/send-message', 'ChatController@send_message');
+    
+});
